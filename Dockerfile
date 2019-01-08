@@ -1,8 +1,8 @@
-FROM golang:1.11 as builder
+FROM golang:1.11 as go_env
 WORKDIR /go/src/redisgo
 COPY . .
 
-FROM builder as compiler
+FROM go_env as compiler
 RUN CGO_ENABLED=0 go build -o client ./client.go
 RUN CGO_ENABLED=0 go build -o server ./server.go
 
