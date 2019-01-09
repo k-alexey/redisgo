@@ -16,13 +16,13 @@ var port = flag.Int("port", 9090, "The port for listening on")
 var mode = flag.String("mode", "disk", "The possible storage option")
 var help = flag.Bool("help", false, "Print help")
 
-type Message struct{
-	status string
+type Message struct {
+	status  string
 	message string
 }
 
-type Command struct{
-	line string
+type Command struct {
+	line   string
 	result chan Message
 }
 
@@ -69,10 +69,10 @@ func handle(commands chan Command, conn net.Conn) {
 		ln := scanner.Text()
 		log.Println(conn.RemoteAddr(), ":", ln)
 		command := Command{
-			line: ln,
+			line:   ln,
 			result: make(chan Message)}
 		commands <- command
-		result := <- command.result
+		result := <-command.result
 		response := fmt.Sprintf("%d#%s%s\n", len(result.status), result.status, result.message)
 		io.WriteString(conn, response)
 	}
@@ -83,34 +83,35 @@ func storage(commands chan Command) {
 	data := make(map[string]string)
 	file, err := os.Open("./data.dump")
 	if err == nil {
-				 decoder := gob.NewDecoder(file)
-				 err = decoder.Decode(&data)
+		decoder := gob.NewDecoder(file)
+		err = decoder.Decode(&data)
 	}
 	file.Close()
 	log.Printf("Storage: %v", data)
+
 	for command := range commands {
 		fields := []string{"", "", ""}
 		for i, v := range strings.SplitN(command.line, " ", 3) {
 			fields[i] = v
 		}
 		result := Message{"", ""}
-		if fields[1] == ""{
+		if fields[1] == "" {
 			result = Message{"ERR", "key required"}
 		} else {
-			switch strings.ToUpper(fields[0]){
+			switch strings.ToUpper(fields[0]) {
 			case "SET":
 				data[fields[1]] = fields[2]
 				file, err := os.Create("./data.dump")
 				if err == nil {
-							 encoder := gob.NewEncoder(file)
-							 encoder.Encode(data)
+					encoder := gob.NewEncoder(file)
+					encoder.Encode(data)
 				}
 				file.Close()
-				result = Message{"OK",""}
+				result = Message{"OK", ""}
 			case "GET":
 				if v, ok := data[fields[1]]; ok {
 					result = Message{"OK", v}
-				}else{
+				} else {
 					result = Message{"ERR", "missing value"}
 				}
 			case "DEL":
