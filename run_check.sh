@@ -2,15 +2,15 @@
 go get golang.org/x/tools/cmd/goimports
 go get golang.org/x/lint/golint
 
-go vet
+go vet ./client/ ./server/
 vet_rc=$?
 [[ vet_rc -eq 0 ]] && echo "GO VET PASS" || echo "GO VET FAIL"
 
-golint
+golint ./client/ ./server/
 lint_rc=$?
 [[ lint_rc -eq 0 ]] && echo "GOLINT PASS" || echo "GOLINT FAIL"
 
-[[ -z "$(goimports -l ./)" ]]
+[[ -z "$(goimports -l ./client/ ./server/)" ]]
 imports_rc=$?
 [[ imports_rc -eq 0 ]] && echo "GOIMPORTS PASS" || echo "GOIMPORTS FAIL"
 

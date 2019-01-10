@@ -16,14 +16,14 @@ var port = flag.Int("port", 9090, "The port for listening on")
 var mode = flag.String("mode", "disk", "The possible storage option")
 var help = flag.Bool("help", false, "Print help")
 
-type Message struct {
+type message struct {
 	status  string
 	message string
 }
 
-type Command struct {
+type command struct {
 	line   string
-	result chan Message
+	result chan message
 }
 
 func init() {
@@ -37,7 +37,6 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	log.Println("SERVER\n")
 	li, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
 		log.Fatalln(err)
@@ -47,7 +46,7 @@ func main() {
 	log.Printf("Server is running on %d port\n", *port)
 	log.Println("Ready to accept connections")
 
-	commands := make(chan Command)
+	commands := make(chan command)
 
 	go storage(commands)
 
@@ -61,16 +60,16 @@ func main() {
 	}
 }
 
-func handle(commands chan Command, conn net.Conn) {
+func handle(commands chan command, conn net.Conn) {
 	defer log.Println("Disconnected", conn.RemoteAddr())
 	log.Println("Connected", conn.RemoteAddr())
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		ln := scanner.Text()
 		log.Println(conn.RemoteAddr(), ":", ln)
-		command := Command{
+		command := command{
 			line:   ln,
-			result: make(chan Message)}
+			result: make(chan message)}
 		commands <- command
 		result := <-command.result
 		response := fmt.Sprintf("%d#%s%s\n", len(result.status), result.status, result.message)
@@ -79,7 +78,7 @@ func handle(commands chan Command, conn net.Conn) {
 	conn.Close()
 }
 
-func storage(commands chan Command) {
+func storage(commands chan command) {
 	data := make(map[string]string)
 	file, err := os.Open("./data.dump")
 	if err == nil {
@@ -94,9 +93,9 @@ func storage(commands chan Command) {
 		for i, v := range strings.SplitN(command.line, " ", 3) {
 			fields[i] = v
 		}
-		result := Message{"", ""}
+		result := message{"", ""}
 		if fields[1] == "" {
-			result = Message{"ERR", "key required"}
+			result = message{"ERR", "key required"}
 		} else {
 			switch strings.ToUpper(fields[0]) {
 			case "SET":
@@ -107,18 +106,22 @@ func storage(commands chan Command) {
 					encoder.Encode(data)
 				}
 				file.Close()
-				result = Message{"OK", ""}
+				result = message{"OK", ""}
 			case "GET":
 				if v, ok := data[fields[1]]; ok {
-					result = Message{"OK", v}
+					result = message{"OK", v}
 				} else {
-					result = Message{"ERR", "missing value"}
+					result = message{"ERR", "missing value"}
 				}
 			case "DEL":
-				delete(data, fields[1])
-				result = Message{"OK", ""}
+				if _, ok := data[fields[1]]; ok {
+					delete(data, fields[1])
+					result = message{"OK", ""}
+				} else {
+					result = message{"ERR", "missing key"}
+				}
 			default:
-				result = Message{"ERR", "unknown command"}
+				result = message{"ERR", "unknown command"}
 			}
 		}
 		command.result <- result

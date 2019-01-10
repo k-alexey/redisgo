@@ -3,11 +3,11 @@ WORKDIR /go/src/redisgo
 COPY . .
 
 FROM go_env as compiler
-RUN CGO_ENABLED=0 go build -o client ./client.go
-RUN CGO_ENABLED=0 go build -o server ./server.go
+RUN CGO_ENABLED=0 go install ./client
+RUN CGO_ENABLED=0 go install ./server
 
 FROM alpine:latest
-COPY --from=compiler /go/src/redisgo/client /usr/local/bin/
-COPY --from=compiler /go/src/redisgo/server /usr/local/bin/
+COPY --from=compiler /go/bin/client /usr/local/bin/
+COPY --from=compiler /go/bin/server /usr/local/bin/
 CMD [ "server"]
 EXPOSE 9090

@@ -52,7 +52,7 @@ func main() {
 		status := split[1][0:statusLength]
 		msg := split[1][statusLength:]
 
-		fmt.Printf("%s %s\n", status, msg)
+		fmt.Printf("%s %s", status, msg)
 
 	}
 }
